@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
   s.name        = 'spree_mailchimp'
   s.version     = SpreeMailchimp::VERSION
-  s.summary     = 'Integration with mailchimp'
+  s.summary     = 'Spree-Mailchimp Integration'
   s.description = 'Manages and syncronises mailchimp subscribers'
   s.required_ruby_version = '>= 2.1.0'
 

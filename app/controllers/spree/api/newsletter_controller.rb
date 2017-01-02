@@ -1,11 +1,11 @@
 module Spree
   module Api
     class NewsletterController < Spree::Api::BaseController
-      SUBSCRIPTION_SOURCES = ['Footer', 'Header', 'Modal'].freeze
+      SUBSCRIPTION_SOURCES = ['Footer', 'Header', 'Modal', 'Registration', 'Homepage'].freeze
 
       def create
         user_email = params['email']
-        user_source = !params['source'].nil? && SUBSCRIPTION_SOURCES.include?(params['source']) ? params['source'] : 'Footer'
+        user_source = !params['source'].nil? && SUBSCRIPTION_SOURCES.include?(params['source']) ? params['source'] : ''
 
         if user_email.nil? || (user_email =~ /\A([\w+\-]\.?)+@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+\z/i).nil?
           render json: { result: :error, msg: 'Please enter a valid email address' }
@@ -33,7 +33,7 @@ module Spree
         elsif subscriber.subscribed?
           render json: { result: :error, msg: 'This email is already subscribed.' }
         else
-          subscriber.source = 'Footer'
+          subscriber.source = ''
           result = subscriber.subscribe! true
           current_spree_user.receive_emails_agree = true
           current_spree_user.save
