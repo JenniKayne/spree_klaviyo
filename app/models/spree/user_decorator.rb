@@ -2,6 +2,10 @@ Spree::User.class_eval do
   has_one :subscription, class_name: 'Spree::Subscriber'
   after_create :subscribe_after_create
 
+  def subscribed?
+    !subscription.nil? && subscription.subscribed?
+  end
+
   private
 
   def subscribe_after_create
