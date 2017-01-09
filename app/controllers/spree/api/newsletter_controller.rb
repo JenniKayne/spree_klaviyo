@@ -1,10 +1,17 @@
 module Spree
   module Api
     class NewsletterController < Spree::Api::BaseController
-      SUBSCRIPTION_SOURCES = ['Footer', 'Header', 'Modal', 'Registration', 'Homepage'].freeze
+      SUBSCRIPTION_SOURCES = ['Footer', 'Header', 'Modal', 'Registration', 'Homepage', 'Account'].freeze
+
+      def delete
+        if current_spree_user
+          current_spree_user.subscription.unsubscribe!
+        end
+        render json: { result: :success }
+      end
 
       def create
-        user_email = params['email']
+        user_email = params['email'] || current_spree_user.email
         user_source = !params['source'].nil? && SUBSCRIPTION_SOURCES.include?(params['source']) ? params['source'] : ''
 
         if user_email.nil? || (user_email =~ /\A([\w+\-]\.?)+@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+\z/i).nil?
