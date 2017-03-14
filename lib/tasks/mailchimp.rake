@@ -71,7 +71,8 @@ namespace :spree do
       Spree::Subscriber.synced.each do |subscriber|
         email_md5 = Digest::MD5.hexdigest subscriber.email.downcase
         begin
-          member_info = gibbon.lists(list_id).members(email_md5).retrieve
+          reponse = gibbon.lists(list_id).members(email_md5).retrieve
+          member_info = reponse.body
         rescue
           member_info = nil
         end
