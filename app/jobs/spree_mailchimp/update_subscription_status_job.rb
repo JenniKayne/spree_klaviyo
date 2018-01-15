@@ -5,11 +5,10 @@ module SpreeMailchimp
     def perform(subscription)
       gibbon = Gibbon::Request.new(api_key: Rails.application.secrets.mailchimp_api_key)
       list_id = Rails.application.secrets.mailchimp_list_id || ''
-      email_md5 = Digest::MD5.hexdigest subscription.email.downcase
 
       if subscription.subscribed?
         member_info = begin
-                        gibbon.lists(list_id).members(email_md5).retrieve.body
+                        gibbon.lists(list_id).members(subscription.email_md5).retrieve.body
                       rescue StandardError
                         nil
                       end
@@ -18,11 +17,11 @@ module SpreeMailchimp
           gibbon.lists(list_id).members.create(body: subscription.mailchimp_request_body)
         else
           # Update subscription
-          gibbon.lists(list_id).members(email_md5).update(body: subscription.mailchimp_request_body)
+          gibbon.lists(list_id).members(subscription.email_md5).update(body: subscription.mailchimp_request_body)
         end
       else
         # Unsubscribe
-        gibbon.lists(list_id).members(email_md5).update(body: { status: 'unsubscribed' })
+        gibbon.lists(list_id).members(subscription.email_md5).update(body: { status: 'unsubscribed' })
       end
 
       subscription.set_as_synced

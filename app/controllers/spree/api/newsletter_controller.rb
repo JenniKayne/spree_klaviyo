@@ -4,7 +4,7 @@ module Spree
       SUBSCRIPTION_SOURCES = ['Footer', 'Header', 'Modal', 'Registration', 'Homepage', 'Account'].freeze
 
       def delete
-        current_spree_user.subscription.unsubscribe! if current_spree_user
+        current_spree_user.subscription.unsubscribe if current_spree_user.present? && current_spree_user.subscribed?
         render json: { result: :success }
       end
 

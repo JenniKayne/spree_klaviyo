@@ -6,9 +6,8 @@ namespace :spree do
       list_id = Rails.application.secrets.mailchimp_list_id || ''
 
       Spree::Subscription.synced.each do |subscription|
-        email_md5 = Digest::MD5.hexdigest subscription.email.downcase
         member_info = begin
-                        gibbon.lists(list_id).members(email_md5).retrieve.body
+                        gibbon.lists(list_id).members(subscription.email_md5).retrieve.body
                       rescue StandardError
                         nil
                       end

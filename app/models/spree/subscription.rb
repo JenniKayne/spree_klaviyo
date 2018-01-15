@@ -34,6 +34,10 @@ module Spree
     scope :not_synced, -> { where(state: STATES_NOT_SYNCED) }
     scope :synced, -> { where(state: STATES_SYNCED) }
 
+    def email_md5
+      Digest::MD5.hexdigest email.downcase
+    end
+
     def mailchimp_request_body
       request_body = {
         email_address: email,
