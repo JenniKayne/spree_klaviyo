@@ -5,12 +5,12 @@ module Spree
 
       def delete
         current_spree_user.subscription.unsubscribe if current_spree_user.present? && current_spree_user.subscribed?
-        render json: { result: :success }
+        render json: { success: true }
       end
 
       def create
         if email.nil? || (email =~ /\A([\w+\-]\.?)+@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+\z/i).nil?
-          render json: { result: :error, msg: 'Please enter a valid email address' }
+          render json: { success: false, message: 'Please enter a valid email address' }
           return
         end
 
@@ -19,17 +19,17 @@ module Spree
           # Subscribe
           subscription = Spree::Subscription.new(user_id: user_id, email: email, source: source)
           if subscription.save
-            render json: { result: :success }
+            render json: { success: true }
           else
-            render json: { result: :error, msg: 'Please try again in 5 minutes.' }
+            render json: { success: false, message: 'Please try again in 5 minutes.' }
           end
         elsif subscription.subscribed?
           # Already subscribed
-          render json: { result: :error, msg: 'This email is already subscribed.' }
+          render json: { success: false, message: 'This email is already subscribed.' }
         else
           # Resubscribe if unsubscribed
           subscription.subscribe
-          render json: { result: :success }
+          render json: { success: true }
         end
       end
 
