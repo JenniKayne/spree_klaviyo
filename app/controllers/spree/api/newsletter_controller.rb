@@ -4,51 +4,48 @@ module Spree
       SUBSCRIPTION_SOURCES = ['Footer', 'Header', 'Modal', 'Registration', 'Homepage', 'Account'].freeze
 
       def delete
-        if current_spree_user
-          current_spree_user.subscription.unsubscribe!
-        end
-        render json: { result: :success }
+        current_spree_user.subscription.unsubscribe if current_spree_user.present? && current_spree_user.subscribed?
+        render json: { success: true }
       end
 
       def create
-        user_email = params['email'] || current_spree_user.email
-        user_source = !params['source'].nil? && SUBSCRIPTION_SOURCES.include?(params['source']) ? params['source'] : ''
-
-        if user_email.nil? || (user_email =~ /\A([\w+\-]\.?)+@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+\z/i).nil?
-          render json: { result: :error, msg: 'Please enter a valid email address' }
+        if email.nil? || (email =~ /\A([\w+\-]\.?)+@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+\z/i).nil?
+          render json: { success: false, message: 'Please enter a valid email address' }
           return
         end
 
-        user_id = current_spree_user.nil? ? nil : current_spree_user.id
-        if !user_id.nil? && current_spree_user.email != user_email
-          user_id = nil
-        end
-
-        subscriber = Spree::Subscriber.where(email: user_email, user_id: user_id).first
-        if subscriber.nil?
-          subscriber = Spree::Subscriber.new(
-            user_id: user_id,
-            email: user_email,
-            source: user_source
-          )
-          result = subscriber.subscribe! true
-          if result
-            render json: { result: :success }
+        subscription = Spree::Subscription.where(email: email, user_id: user_id).first
+        if subscription.nil?
+          # Subscribe
+          subscription = Spree::Subscription.new(user_id: user_id, email: email, source: source)
+          if subscription.save
+            render json: { success: true, message: 'Thank you!' }
           else
-            render json: { result: :error, msg: 'Please try again in 5 minutes.' }
+            render json: { success: false, message: 'Please try again in 5 minutes.' }
           end
-        elsif subscriber.subscribed?
-          render json: { result: :error, msg: 'This email is already subscribed.' }
+        elsif subscription.subscribed?
+          # Already subscribed
+          render json: { success: false, message: 'This email is already subscribed.' }
         else
-          subscriber.source = ''
-          result = subscriber.subscribe! true
-          current_spree_user.receive_emails_agree = true
-          current_spree_user.save
-          if result
-            render json: { result: :success }
-          else
-            render json: { result: :error, msg: 'Please try again in 5 minutes.' }
-          end
+          # Resubscribe if unsubscribed
+          subscription.subscribe
+          render json: { success: true }
+        end
+      end
+
+      private
+
+      def email
+        params['email'] || current_spree_user.email
+      end
+
+      def source
+        !params['source'].nil? && SUBSCRIPTION_SOURCES.include?(params['source']) ? params['source'] : ''
+      end
+
+      def user_id
+        if current_spree_user.present? && current_spree_user.email == email
+          current_spree_user.id
         end
       end
     end
