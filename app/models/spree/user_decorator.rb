@@ -1,23 +1,27 @@
 Spree::User.class_eval do
-  has_one :subscription, class_name: 'Spree::Subscriber'
-  after_create :subscribe_after_create
+  has_one :subscription
+  after_update :update_subscription
 
   def subscribed?
     !subscription.nil? && subscription.subscribed?
   end
 
-  private
+  def subscription_firstname
+    try(:firstname).to_s
+  end
 
-  def subscribe_after_create
-    if receive_emails_agree
-      Spree::Subscriber.where(user: self).first_or_create(
-        user: self,
-        email: email,
-        first_name: (!first_name.blank? ? first_name : ''),
-        last_name: (!last_name.blank? ? last_name : ''),
-        source: 'Registration',
-        status: 1
-      )
+  def subscription_lastname
+    try(:lastname).to_s
+  end
+
+  def update_subscription
+    return unless subscribed?
+    subscription.update(email: email) if saved_change_to_email?
+
+    if defined?(firstname) && saved_change_to_firstname? ||
+        defined?(lastname) && saved_change_to_lastname? ||
+        saved_change_to_email?
+      subscription.set_as_updated
     end
   end
 end

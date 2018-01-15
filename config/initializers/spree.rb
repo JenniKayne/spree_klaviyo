@@ -1,1 +1,0 @@
-Spree::PermittedAttributes.user_attributes.push :receive_emails_agree
