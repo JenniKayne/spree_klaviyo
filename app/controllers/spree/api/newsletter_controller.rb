@@ -19,7 +19,7 @@ module Spree
           # Subscribe
           subscription = Spree::Subscription.new(user_id: user_id, email: email, source: source)
           if subscription.save
-            render json: { success: true }
+            render json: { success: true, message: 'Thank you!' }
           else
             render json: { success: false, message: 'Please try again in 5 minutes.' }
           end
