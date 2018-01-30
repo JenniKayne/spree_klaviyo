@@ -34,6 +34,10 @@ module Spree
     scope :not_synced, -> { where(state: STATES_NOT_SYNCED) }
     scope :synced, -> { where(state: STATES_SYNCED) }
 
+    def custom_merge_fields
+      {}
+    end
+
     def email_md5
       Digest::MD5.hexdigest email.downcase
     end
@@ -49,7 +53,7 @@ module Spree
         FNAME: (user.subscription_firstname unless user.nil? || user.subscription_firstname.blank?),
         LNAME: (user.subscription_lastname unless user.nil? || user.subscription_lastname.blank?),
         SOURCE: (source unless source.blank?)
-      }.compact
+      }.merge!(custom_merge_fields).compact
       request_body[:merge_fields] = merge_fields unless merge_fields.blank?
       request_body
     end
