@@ -2,10 +2,15 @@ module SpreeMailchimp
   class UpdateSubscriptionStatusJob < ApplicationJob
     queue_as :mailchimp
 
-    def perform(subscription)
-      gibbon = Gibbon::Request.new(api_key: Rails.application.secrets.mailchimp_api_key)
-      list_id = Rails.application.secrets.mailchimp_list_id || ''
+    def gibbon
+      @gibbon ||= Gibbon::Request.new(api_key: Rails.application.secrets.mailchimp_api_key)
+    end
 
+    def list_id
+      Rails.application.secrets.mailchimp_list_id || ''
+    end
+
+    def perform(subscription)
       if subscription.subscribed?
         member_info = begin
                         gibbon.lists(list_id).members(subscription.email_md5).retrieve.body
@@ -17,7 +22,7 @@ module SpreeMailchimp
           gibbon.lists(list_id).members.create(body: subscription.mailchimp_request_body)
         else
           # Update subscription
-          gibbon.lists(list_id).members(subscription.email_md5).update(body: subscription.mailchimp_request_body)
+          perform_subscription_update(subscription)
         end
       else
         # Unsubscribe
@@ -28,6 +33,24 @@ module SpreeMailchimp
     rescue StandardError => error
       ExceptionNotifier.notify_exception(error, data: { msg: "Mailchimp Error (#{subscription.email})" })
       raise error
+    end
+
+    def perform_subscription_update(subscription)
+      gibbon.lists(list_id).members(subscription.email_md5).update(body: subscription.mailchimp_request_body)
+    rescue Gibbon::MailChimpError
+      # Sync back with Mailichimp on error
+      if mailchimp_subscribed?(subscription)
+        subscription.update_column(:state, Spree::Subscription::STATE_SUBSCRIBED_SYNCED)
+      else
+        subscription.update_column(:state, Spree::Subscription::STATE_UNSUBSCRIBED_SYNCED)
+      end
+    end
+
+    def mailchimp_subscribed?(subscription)
+      member_info = gibbon.lists(list_id).members(subscription.email_md5).retrieve.body
+      member_info['status'] == 'subscribed'
+    rescue StandardError
+      false
     end
   end
 end

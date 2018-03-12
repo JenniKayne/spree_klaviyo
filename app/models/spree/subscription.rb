@@ -43,9 +43,15 @@ module Spree
     end
 
     def mailchimp_request_body
+      status = if Rails.application.secrets.mailchimp_opt_in_enabled
+                 state == STATE_SUBSCRIBED_NOT_SYNCED ? 'pending' : 'subscribed'
+               else
+                 'subscribed'
+               end
+
       request_body = {
         email_address: email,
-        status: 'subscribed',
+        status: status,
         double_optin: false,
         update_existing: true
       }
