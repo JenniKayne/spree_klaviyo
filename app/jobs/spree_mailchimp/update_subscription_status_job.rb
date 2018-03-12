@@ -40,8 +40,10 @@ module SpreeMailchimp
     rescue Gibbon::MailChimpError
       # Sync back with Mailichimp on error
       if mailchimp_subscribed?(subscription)
+        subscription.user.update_column(:receive_emails_agree, true) if subscription.user.present?
         subscription.update_column(:state, Spree::Subscription::STATE_SUBSCRIBED_SYNCED)
       else
+        subscription.user.update_column(:receive_emails_agree, false) if subscription.user.present?
         subscription.update_column(:state, Spree::Subscription::STATE_UNSUBSCRIBED_SYNCED)
       end
     end
