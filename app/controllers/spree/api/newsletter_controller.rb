@@ -19,6 +19,7 @@ module Spree
           # Subscribe
           subscription = Spree::Subscription.new(user_id: user_id, email: email, source: source)
           if subscription.save
+            handle_custom_fields(subscription)
             render json: { success: true, message: 'Thank you!' }
           else
             render json: { success: false, message: 'Please try again in 5 minutes.' }
@@ -29,18 +30,27 @@ module Spree
         else
           # Resubscribe if unsubscribed
           subscription.subscribe
+          handle_custom_fields(subscription)
           render json: { success: true }
         end
       end
 
       private
 
+      def custom_subsciption_sources
+        []
+      end
+
       def email
         params['email'] || current_spree_user.email
       end
 
+      def handle_custom_fields(subscription)
+      end
+
       def source
-        !params['source'].nil? && SUBSCRIPTION_SOURCES.include?(params['source']) ? params['source'] : ''
+        !params['source'].nil? &&
+          (SUBSCRIPTION_SOURCES + custom_subsciption_sources).include?(params['source']) ? params['source'] : ''
       end
 
       def user_id
