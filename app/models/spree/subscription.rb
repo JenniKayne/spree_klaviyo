@@ -34,38 +34,20 @@ module Spree
     scope :not_synced, -> { where(state: STATES_NOT_SYNCED) }
     scope :synced, -> { where(state: STATES_SYNCED) }
 
-    def custom_merge_fields
-      {}
-    end
-
-    def email_md5
-      Digest::MD5.hexdigest email.downcase
-    end
-
-    def mailchimp_request_body
-      status = if Rails.application.secrets.mailchimp_opt_in_enabled
-                 state == STATE_SUBSCRIBED_NOT_SYNCED ? 'pending' : 'subscribed'
-               else
-                 'subscribed'
-               end
-
+    def klaviyo_body
       request_body = {
-        email_address: email,
-        status: status,
-        double_optin: false,
-        update_existing: true
+        email: email
       }
-      merge_fields = {
-        FNAME: (user.subscription_firstname unless user.nil? || user.subscription_firstname.blank?),
-        LNAME: (user.subscription_lastname unless user.nil? || user.subscription_lastname.blank?),
-        SOURCE: (source unless source.blank?)
-      }.merge!(custom_merge_fields).compact
-      request_body[:merge_fields] = merge_fields unless merge_fields.blank?
+
+      request_body[:first_name] = user.subscription_firstname unless user&.subscription_firstname.blank?
+      request_body[:last_name] = user.subscription_lastname unless user&.subscription_lastname.blank?
+      request_body[:source] = source unless source.blank?
+
       request_body
     end
 
     def schedule_synchronization
-      SpreeMailchimp::UpdateSubscriptionStatusJob.perform_later(self)
+      SpreeKlaviyo::UpdateSubscriptionStatusJob.perform_later(self)
     end
 
     def set_as_synced
@@ -89,11 +71,11 @@ module Spree
     end
 
     def subscribed?
-      STATES_SUBSCRIBED.include? state
+      STATES_SUBSCRIBED.include?(state)
     end
 
     def synced?
-      STATES_SYNCED.include? state
+      STATES_SYNCED.include?(state)
     end
 
     def updated?
@@ -108,7 +90,7 @@ module Spree
     end
 
     def unsubscribed?
-      STATES_UNSUBSCRIBED.include? state
+      STATES_UNSUBSCRIBED.include?(state)
     end
   end
 end
