@@ -1,20 +1,12 @@
-module SpreeMailchimp
+module SpreeKlaviyo
   class CheckSubscriptionStatusJob < ApplicationJob
-    queue_as :mailchimp
+    queue_as :klaviyo
 
     def perform
-      gibbon = Gibbon::Request.new(api_key: Rails.application.secrets.mailchimp_api_key)
-      list_id = Rails.application.secrets.mailchimp_list_id || ''
-
       Spree::Subscription.synced.each do |subscription|
-        member_info = begin
-                        gibbon.lists(list_id).members(subscription.email_md5).retrieve.body
-                      rescue StandardError
-                        nil
-                      end
-        next if member_info.nil?
+        member_info = client.fetch_list_member(list_id, subscription.email)
 
-        if member_info['status'] == 'subscribed' && !subscription.subscribed?
+        if member_info && !subscription.subscribed?
           puts "Subscribe #{subscription.email}"
           # Trigger re-synchronization from Spree to Mailchimp by fully updating user
           if subscription.user.present?
@@ -22,7 +14,7 @@ module SpreeMailchimp
           else
             subscription.update(state: Spree::Subscription::STATE_SUBSCRIBED_SYNCED)
           end
-        elsif member_info['status'] != 'subscribed' && subscription.subscribed?
+        else
           puts "Unsubscribe #{subscription.email}"
           # Prevent re-synchronization from Spree to Mailchimp by updating single user column without callbacks
           subscription.user.update_column(:receive_emails_agree, false) if subscription.user.present?
@@ -30,8 +22,20 @@ module SpreeMailchimp
         end
       end
     rescue StandardError => error
-      ExceptionNotifier.notify_exception(error, data: { msg: 'Check Subscription Status' })
+      Raven.extra_context msg: 'Checking Subscription Status'
+      Raven.capture_exception(error)
+
       raise error
     end
+  end
+
+  private
+
+  def list_id
+    @list_id ||= Rails.application.secrets.klaviyo_list_id || ''
+  end
+
+  def client
+    @client ||= Klaviyo::Client.new
   end
 end

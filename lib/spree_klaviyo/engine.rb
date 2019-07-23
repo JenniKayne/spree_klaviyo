@@ -1,8 +1,8 @@
-module SpreeMailchimp
+module SpreeKlaviyo
   class Engine < Rails::Engine
     require 'spree/core'
     isolate_namespace Spree
-    engine_name 'spree_mailchimp'
+    engine_name 'spree_klaviyo'
 
     # use rspec for tests
     config.generators do |g|
